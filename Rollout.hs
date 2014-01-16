@@ -24,21 +24,21 @@ module Rollout (
 ) where
 --------------------------------------------------------------------------------
 import qualified Control.Exception           as EX
-import qualified Control.Monad.Reader        as CR
-import qualified System.Log.Logger           as SL
-import qualified System.Log.Handler.Syslog   as SH
-import qualified Control.Monad.IO.Class      as MI
-import qualified Database.SQLite3            as SQ
-import qualified Database.SQLite.Simple      as SS
-import qualified Happstack.Server            as HS
 import qualified Control.Monad               as CM
+import qualified Control.Monad.Reader        as CR
+import qualified Control.Monad.IO.Class      as MI
 import qualified Data.Aeson                  as AE
 import qualified Data.Aeson.Types            as AT
 import qualified Data.ByteString.Char8       as BC
 import qualified Data.Maybe                  as DM
+import qualified Data.Text                   as T
+import qualified Database.SQLite3            as SQ
+import qualified Database.SQLite.Simple      as SS
+import qualified Happstack.Server            as HS
+import qualified System.Log.Logger           as SL
+import qualified System.Log.Handler.Syslog   as SH
 import qualified TConfig                     as CF
 import qualified Text.Parsec                 as TP
-import qualified Data.Text                   as T
 import qualified Validation                  as VD
 --------------------------------------------------------------------------------
 -- | Application configuration type
