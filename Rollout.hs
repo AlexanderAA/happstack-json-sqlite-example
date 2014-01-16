@@ -31,15 +31,14 @@ import qualified Data.Aeson                  as AE
 import qualified Data.Aeson.Types            as AT
 import qualified Data.ByteString.Char8       as BC
 import qualified Data.Maybe                  as DM
+import qualified Data.TConfig                as TC
 import qualified Data.Text                   as T
 import qualified Database.SQLite3            as SQ
 import qualified Database.SQLite.Simple      as SS
 import qualified Happstack.Server            as HS
 import qualified System.Log.Logger           as SL
 import qualified System.Log.Handler.Syslog   as SH
-import qualified TConfig                     as CF
-import qualified Text.Parsec                 as TP
-import qualified Validation                  as VD
+import qualified Text.Email.Validate         as EV
 --------------------------------------------------------------------------------
 -- | Application configuration type
 type ConnectionString = String
@@ -103,9 +102,9 @@ appConfigPath = "/etc/rollout.conf"
 -- | Reads application configuration from file
 appConfig :: IO (Maybe AppConfig)
 appConfig = do
-    conf <- CF.readConfig appConfigPath
-    let c = CF.getValue "connString"       conf
-    let q = CF.getValue "insertEmailQuery" conf
+    conf <- TC.readConfig appConfigPath
+    let c = TC.getValue "connString"       conf
+    let q = TC.getValue "insertEmailQuery" conf
     SL.debugM "rollout.appConfig" ("connString: "       ++ (show c))
     SL.debugM "rollout.appConfig" ("insertEmailQuery: " ++ (show q))
     case (and $ map DM.isJust [c, q]) of
@@ -138,8 +137,8 @@ handleSqliteError e = do
         _               -> return $ Envelope (Left errorStatus)
 
 -- | Returns envelope with error message
-handleInvalidEmail :: T.Text -> TP.ParseError -> IO (Envelope IRConfirmation)
-handleInvalidEmail email e = do
+handleInvalidEmail :: String -> T.Text -> IO (Envelope IRConfirmation)
+handleInvalidEmail email errorMessage = do
     SL.noticeM "rollout.handleInvalidEmail" ("Invalid email: " ++ (show email))
     let errorStatus = ErrorStatus 
                         (T.pack "EVALIDATION") 
@@ -157,8 +156,10 @@ dbWriteEmail (AppConfig connStr query) email = do
     
 -- | Save email to database if email is valid or return envelope with error
 saveEmail :: AppConfig -> T.Text -> IO (Envelope IRConfirmation)
-saveEmail config email = 
-    either (handleInvalidEmail email) (dbWriteEmail config) (VD.validEmail email)
+saveEmail config email =
+    case (EV.validate $ BC.pack $ T.unpack email) of
+        Left  errorMessage -> handleInvalidEmail errorMessage email
+        Right emailAddress -> dbWriteEmail config email
 --------------------------------------------------------------------------------
 -- | Register interest. Takes email from form POST submission, 
 --   returns confirmation or error message in JSON format
